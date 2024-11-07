@@ -133,3 +133,5 @@ export function createElement<
     }
     return element;
 }
+
+export const getImageUrl = (cdn:string, url:string) => `${cdn}${url}`;
