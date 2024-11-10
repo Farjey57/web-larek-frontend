@@ -1,16 +1,8 @@
 import { IProduct } from '../../../types';
 import { IProductsModel } from '../../../types/model/Products/ProductsModel';
-import { ProductsService } from './Services/ProductsService';
 
 export class ProductModel implements IProductsModel {
 	private _products: IProduct[] = [];
-
-	public refresh = async (cb?: (data: IProduct[]) => void) => {
-		const data = await this.service.getAllProducts();
-		this.setProducts(data.items);
-		cb && cb(data.items);
-		return data.items;
-	};
 
 	getProducts() {
 		return this._products;
@@ -24,5 +16,4 @@ export class ProductModel implements IProductsModel {
 		this._products = products;
 	}
 
-	constructor(private service: ProductsService) {}
 }

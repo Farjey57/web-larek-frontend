@@ -1,13 +1,14 @@
 import { IProduct, UserData } from "../..";
-import { success } from "./Service/Service";
+import { OrderFetchType} from "./Service/Service";
 
 export interface IOrdersModel {
   productsList: IProduct[];
+  dataOrder: OrderFetchType;
   user: Partial<UserData>;
+  count: number;
 
-  sendOrder(): Promise<success>;
-  addProduct(product: IProduct): number; 
-  removeProduct(id: string): number; 
+  addProduct(product: IProduct): void; 
+  removeProduct(id: string): void; 
   hasProduct(id: string): boolean; 
-  clearOrder(): number;
+  clearOrder(): void;
 }

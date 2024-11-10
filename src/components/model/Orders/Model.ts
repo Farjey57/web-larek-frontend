@@ -1,51 +1,56 @@
 import { IProduct, PaymentType, UserData } from '../../../types';
 import { IOrdersModel } from '../../../types/model/Orders/OrdersModel';
-import { OrdersService } from './Service/OrdersService';
+import { OrderFetchType } from '../../../types/model/Orders/Service/Service';
 
 export class OrderModel implements IOrdersModel {
 	private readonly products: Map<string, IProduct> = new Map();
-	private userData: UserData = {
-		phone: '',
-		email: '',
-		address: '',
-		payment: PaymentType.cash,
-	};
+  //Для отображения списка товаров в корзине
+  //нужный спсиок ID мы получаем через геттер dataOrder()
+	private userData: UserData 
 
-	constructor(private orderService: OrdersService) {}
+	constructor() {
+    this.user = {
+      phone: '',
+      email: '',
+      address: '',
+      payment: PaymentType.cash,
+    };
+  }
 
   get productsList(): IProduct[] {
 		return Array.from(this.products.values());
 	}
 
-	set user(user: Partial<UserData>) {
-		this.userData = { ...this.userData, ...user };
-	}
-
-	sendOrder() {
+  get dataOrder(): OrderFetchType {
 		const total = this.productsList.reduce((total, product) => {
 			return total + product.price;
 		}, 0);
 		const products = this.productsList.map((product) => product.id);
-		return this.orderService.postOrder(
-			Object.assign({ items: products }, { ...this.userData }, { total: total })
+		return Object.assign({ items: products }, { ...this.userData }, { total: total }
 		);
 	}
 
-	addProduct(product: IProduct): number {
-		this.products.set(product.id, product);
-		return this.productsList.length;
+  get count() {
+    return this.products.size;
+  }
+
+	set user(user: Partial<UserData>) {
+		this.userData = { ...this.userData, ...user };
 	}
 
-	removeProduct(id: string): number {
+	addProduct(product: IProduct) {
+		this.products.set(product.id, product)
+	}
+
+	removeProduct(id: string){
 		this.products.delete(id);
-		return this.productsList.length;
 	}
 
 	hasProduct(id: string): boolean {
 		return this.products.has(id);
 	}
 
-	clearOrder(): number {
+	clearOrder() {
 		this.products.clear();
 		this.userData = {
 			phone: '',
@@ -53,6 +58,5 @@ export class OrderModel implements IOrdersModel {
 			address: '',
 			payment: PaymentType.cash,
 		};
-		return this.products.size;
 	}
 }

@@ -1,6 +1,7 @@
 import { IProduct } from '../../../../types';
 import { OrderCartSettings } from '../../../../types/view/Order/OrderCart/OrderCart';
 import { cloneTemplate, ensureElement } from '../../../../utils/utils';
+import { OrderCardView } from '../OrderCard/OrderCartView';
 
 export class OrderCartView implements OrderCartView {
 	constructor(private settings: OrderCartSettings) {}
@@ -23,7 +24,11 @@ export class OrderCartView implements OrderCartView {
 		basketButton.disabled = !+this.settings.totalPrice;
 
 		products.forEach((product, i) => {
-			listContainer.appendChild(this.createItem(product, i));
+			new OrderCardView({
+				product: product,
+				index: ++i,
+				onDelete: this.settings.onDelete,
+			}).render(listContainer);
 		});
 		return cart;
 	}
