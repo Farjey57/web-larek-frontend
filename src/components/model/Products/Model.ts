@@ -6,7 +6,6 @@ export class ProductModel {
 
     public refresh = async (cb?: (data: IProduct[]) => void) => {
         this.service.getAllProducts().then((data) => {
-          console.log(data)
           this.setProducts(data.items)
           return data.items
         }).then((data) => cb && cb(data))

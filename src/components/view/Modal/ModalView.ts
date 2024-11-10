@@ -1,33 +1,35 @@
-import { cloneTemplate, ensureElement } from "../../../utils/utils";
-import { EventEmitter } from "../../base/events";
+import { cloneTemplate, ensureElement } from "../../../utils/utils"
 
 export class ModalView {
   protected _closeModalElement: HTMLButtonElement;
   protected _content: HTMLElement;
+  protected _contentContainer: HTMLElement;
 
-  constructor(private container: HTMLElement, protected events: EventEmitter) {
+  constructor(private container: HTMLElement, onClick: () => void) {
     this._closeModalElement = ensureElement('.modal__close', this.container) as HTMLButtonElement;
     this._content = ensureElement<HTMLElement>('.modal__content', this.container);
+    this._contentContainer = ensureElement<HTMLElement>('.modal__container', this.container)
 
-    this._closeModalElement.addEventListener('click', this.hideModal.bind(this));
-    this.container.addEventListener('click', this.hideModal.bind(this));
-    this._content.addEventListener('click', (event) => event.stopPropagation());
+    this._closeModalElement.addEventListener('click', onClick);
+    this.container.addEventListener('click', onClick);
+    this._contentContainer.addEventListener('click', (event) => event.stopPropagation());
   }
 
-  set content(value: HTMLElement) {
-    this._content.replaceChildren(value);
+  setContent(content: HTMLElement) {
+    this._content.replaceChildren(content);
   }
 
-  showModal(template?: HTMLTemplateElement):void {
-    this.events.emit('modal-open', this);
-    this.content = cloneTemplate(template);
+  show():void {
     this.container.classList.add('modal_active');
   }
 
-  hideModal():void {
-    this.events.emit('modal-close', this);
+  hide():void {
     this.container.classList.remove('modal_active');
-    this.content = null
+    this.clear();
+  }
+
+  clear():void {
+    this._content.innerHTML = null
   }
 
 }
