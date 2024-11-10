@@ -3,15 +3,19 @@ import {
 	ensureElement,
 	getImageUrl,
 } from '../../../../utils/utils';
-import { IProduct } from '../../../../types';
 import { CDN_URL } from '../../../../utils/constants';
 import { getCategoryClass } from '../utils';
+import {
+	IProductCardView,
+	ProductCardSettings,
+} from '../../../../types/view/Products/ProductCard/ProductCard';
 
-export class ProductCardView {
-	constructor(private settings: ProductCardViewType) {}
+export class ProductCardView implements IProductCardView {
+	constructor(private settings: ProductCardSettings) {}
 
 	render(container: HTMLElement) {
 		const card = cloneTemplate('#card-catalog');
+		const cardCategory = ensureElement('.card__category', card);
 		const classname = getCategoryClass(this.settings.category);
 
 		ensureElement('.card__title', card).innerText = this.settings.title;
@@ -19,8 +23,8 @@ export class ProductCardView {
 			CDN_URL,
 			this.settings.image
 		);
-		ensureElement('.card__category', card).innerText = this.settings.category;
-		ensureElement('.card__category', card).classList.add(classname);
+		cardCategory.innerText = this.settings.category;
+		cardCategory.classList.add(classname);
 		ensureElement('.card__price', card).innerText = this.settings.price
 			? `${String(this.settings.price)} синапсов`
 			: `Бесценно`;
@@ -30,15 +34,3 @@ export class ProductCardView {
 		container.appendChild(card);
 	}
 }
-
-export type ProductCardViewType = {
-	size: 'medium' | 'large' | 'small';
-	title: string;
-	description: string;
-	price: number;
-	image: string;
-	category: string;
-	id: string;
-
-	onClick: (data: IProduct) => void;
-};

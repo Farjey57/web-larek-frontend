@@ -1,16 +1,10 @@
-import {Api} from "../../../base/api";
-import {ProductsFetchType} from "../types";
+import { IProductsService, ProductsFetchType } from '../../../../types/model/Products/Service/Service';
+import { Api } from '../../../base/api';
 
-export class ProductsService {
+export class ProductsService implements IProductsService {
+	getAllProducts() {
+		return this.api.get('/product/') as Promise<ProductsFetchType>;
+	}
 
-    getAllProducts() {
-        return this.api.get("/product/") as Promise<ProductsFetchType>;
-    }
-
-    getProductById(id: number) {
-        return this.api.get(`/products/${id}`);
-    }
-
-    constructor(private api:Api) {
-    }
+	constructor(private api: Api) {}
 }

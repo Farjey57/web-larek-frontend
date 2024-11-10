@@ -1,62 +1,58 @@
-import { IProduct } from '../../../types';
-import { OrdersService } from './OrdersService/OrdersService';
-import { OrderFetchType } from './types';
+import { IProduct, PaymentType, UserData } from '../../../types';
+import { IOrdersModel } from '../../../types/model/Orders/OrdersModel';
+import { OrdersService } from './Service/OrdersService';
 
-export class OrderModel {
+export class OrderModel implements IOrdersModel {
 	private readonly products: Map<string, IProduct> = new Map();
 	private userData: UserData = {
-    phone: '',
-    email: '',
-    address: '',
-    payment: PaymentType.cash,
-  };
+		phone: '',
+		email: '',
+		address: '',
+		payment: PaymentType.cash,
+	};
 
 	constructor(private orderService: OrdersService) {}
 
-  sendOrder() {
-    const total = 
-      this.productsList.reduce((total, product) => {
-        return total + product.price;
-      }, 0)
-    const products = this.productsList.map((product) => product.id)
-    console.log(Object.assign({products: products}, {...this.userData}, {total: total}))
-    this.orderService.postOrder(Object.assign({products: products}, {...this.userData}, {total: total})).then((data) => console.log(data))
-  }
+  get productsList(): IProduct[] {
+		return Array.from(this.products.values());
+	}
+
+	set user(user: Partial<UserData>) {
+		this.userData = { ...this.userData, ...user };
+	}
+
+	sendOrder() {
+		const total = this.productsList.reduce((total, product) => {
+			return total + product.price;
+		}, 0);
+		const products = this.productsList.map((product) => product.id);
+		return this.orderService.postOrder(
+			Object.assign({ items: products }, { ...this.userData }, { total: total })
+		);
+	}
 
 	addProduct(product: IProduct): number {
 		this.products.set(product.id, product);
 		return this.productsList.length;
 	}
 
-  removeProduct(id: string): number {
-    this.products.delete(id);
-    return this.productsList.length
-  }
-
-	get productsList(): IProduct[] {
-		return Array.from(this.products.values());
+	removeProduct(id: string): number {
+		this.products.delete(id);
+		return this.productsList.length;
 	}
 
-	set user(user: Partial<UserData>) {
-    console.log(user)
-    console.log({ ...this.userData, ...user })
-    this.userData = { ...this.userData, ...user };
-    console.log(this.userData)
-  }
+	hasProduct(id: string): boolean {
+		return this.products.has(id);
+	}
 
-  hasProduct(id: string) {
-    return this.products.has(id)
-  }
-}
-
-export type UserData = {
-	phone: string;
-	email: string;
-	address: string;
-	payment: PaymentType;
-};
-
-export enum PaymentType {
-	card = 'card',
-	cash = 'cash'
+	clearOrder(): number {
+		this.products.clear();
+		this.userData = {
+			phone: '',
+			email: '',
+			address: '',
+			payment: PaymentType.cash,
+		};
+		return this.products.size;
+	}
 }

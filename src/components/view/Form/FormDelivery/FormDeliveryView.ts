@@ -1,11 +1,15 @@
+import { PaymentType } from '../../../../types';
+import {
+	FormDeliveryViewSettings,
+	IFormDeliveryView,
+} from '../../../../types/view/From/FormDelivery/FormDelivery';
 import {
 	cloneTemplate,
 	ensureAllElements,
 	ensureElement,
 } from '../../../../utils/utils';
-import { PaymentType, UserData } from '../../../model/Orders/Model';
 
-export class FormDeliveryView implements Partial<UserData> {
+export class FormDeliveryView implements IFormDeliveryView {
 	payment: PaymentType;
 	address: string;
 	error: HTMLElement;
@@ -26,14 +30,15 @@ export class FormDeliveryView implements Partial<UserData> {
 			}
 		);
 
-		ensureElement<HTMLInputElement>('.form__input[name=address]', orderTemplate).addEventListener(
-			'input',
-			(e) => {
-				this.address = (e.target as HTMLInputElement).value;
-        this.settings.onChangeForm(this);
-			}
-		);
+		ensureElement<HTMLInputElement>(
+			'.form__input[name=address]',
+			orderTemplate
+		).addEventListener('input', (e) => {
+			this.address = (e.target as HTMLInputElement).value;
+			this.settings.onChangeForm(this);
+		});
 
+		orderTemplate.onsubmit = (e) => e.preventDefault();
 		this.submitButton.onclick = () => {
 			if (this.validate())
 				this.settings.onSubmit({
@@ -59,11 +64,11 @@ export class FormDeliveryView implements Partial<UserData> {
 
 	validate(): boolean {
 		if (!this.isValid()) {
-			this.error.innerText = 'Ну и хуйню ты заполнил';
-      this.submitButton.setAttribute('disabled', 'disabled');
+			this.error.innerText = 'Не все поля заполнены';
+			this.submitButton.setAttribute('disabled', 'disabled');
 			return false;
 		} else {
-			this.error.innerText = 'Молодец (иди на хуй)';
+			this.error.innerText = '';
 			this.submitButton.removeAttribute('disabled');
 			return true;
 		}
@@ -73,8 +78,3 @@ export class FormDeliveryView implements Partial<UserData> {
 		return !!this.address && !!this.payment;
 	}
 }
-
-export type FormDeliveryViewSettings = {
-	onChangeForm(form: FormDeliveryView): void;
-	onSubmit(data: Partial<UserData>): void;
-};

@@ -1,7 +1,8 @@
 import { IProduct } from '../../../../types';
+import { OrderCartSettings } from '../../../../types/view/Order/OrderCart/OrderCart';
 import { cloneTemplate, ensureElement } from '../../../../utils/utils';
 
-export class OrderCartView {
+export class OrderCartView implements OrderCartView {
 	constructor(private settings: OrderCartSettings) {}
 
 	get template(): HTMLElement {
@@ -40,10 +41,3 @@ export class OrderCartView {
 		return cartItem;
 	}
 }
-
-export type OrderCartSettings = {
-	products: IProduct[];
-	totalPrice: string;
-	onSubmit(): void;
-	onDelete: (id: string) => void;
-};

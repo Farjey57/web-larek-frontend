@@ -1,7 +1,10 @@
+import {
+	FormContactsViewSettings,
+	IFormContactsView,
+} from '../../../../types/view/From/FormContacts/FormContacts';
 import { cloneTemplate, ensureElement } from '../../../../utils/utils';
-import { UserData } from '../../../model/Orders/Model';
 
-export class FormContactsView implements Partial<UserData> {
+export class FormContactsView implements IFormContactsView {
 	email: string;
 	phone: string;
 	error: HTMLElement;
@@ -11,26 +14,27 @@ export class FormContactsView implements Partial<UserData> {
 
 	get template() {
 		const orderTemplate = cloneTemplate('#contacts');
-    this.error = ensureElement('.form__errors', orderTemplate);
-    this.submitButton = ensureElement('.button', orderTemplate);
+		this.error = ensureElement('.form__errors', orderTemplate);
+		this.submitButton = ensureElement('.button', orderTemplate);
 
-    ensureElement<HTMLInputElement>('.form__input[name=email]', orderTemplate).addEventListener(
-			'input',
-			(e) => {
-				this.email = (e.target as HTMLInputElement).value;
-        this.settings.onChangeForm(this);
-			}
-		);
+		ensureElement<HTMLInputElement>(
+			'.form__input[name=email]',
+			orderTemplate
+		).addEventListener('input', (e) => {
+			this.email = (e.target as HTMLInputElement).value;
+			this.settings.onChangeForm(this);
+		});
 
-    ensureElement<HTMLInputElement>('.form__input[name=phone]', orderTemplate).addEventListener(
-			'input',
-			(e) => {
-				this.phone = (e.target as HTMLInputElement).value;
-        this.settings.onChangeForm(this);
-			}
-		);
+		ensureElement<HTMLInputElement>(
+			'.form__input[name=phone]',
+			orderTemplate
+		).addEventListener('input', (e) => {
+			this.phone = (e.target as HTMLInputElement).value;
+			this.settings.onChangeForm(this);
+		});
 
-    this.submitButton.onclick = () => {
+		orderTemplate.onsubmit = (e) => e.preventDefault();
+		this.submitButton.onclick = () => {
 			if (this.validate())
 				this.settings.onSubmit({
 					email: this.email,
@@ -38,18 +42,18 @@ export class FormContactsView implements Partial<UserData> {
 				});
 		};
 
-    this.validate();
+		this.validate();
 
 		return orderTemplate;
 	}
 
-  validate(): boolean {
+	validate(): boolean {
 		if (!this.isValid()) {
-			this.error.innerText = 'Ну и хуйню ты заполнил';
-      this.submitButton.setAttribute('disabled', 'disabled');
+			this.error.innerText = 'Не все поля заполнены';
+			this.submitButton.setAttribute('disabled', 'disabled');
 			return false;
 		} else {
-			this.error.innerText = 'Молодец (иди на хуй)';
+			this.error.innerText = '';
 			this.submitButton.removeAttribute('disabled');
 			return true;
 		}
@@ -59,8 +63,3 @@ export class FormContactsView implements Partial<UserData> {
 		return !!this.email && !!this.phone;
 	}
 }
-
-export type FormContactsViewSettings = {
-  onChangeForm(form: FormContactsView): void;
-	onSubmit(data: Partial<UserData>): void;
-};

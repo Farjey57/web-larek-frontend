@@ -1,6 +1,7 @@
 import { EventEmitter } from '../../base/events';
-import { OrderModel, UserData } from '../../model/Orders/Model';
-import { IProduct } from '../../../types';
+import { OrderModel } from '../../model/Orders/Model';
+import { IProduct, UserData } from '../../../types';
+import { success } from '../../../types/model/Orders/Service/Service';
 
 export class OrderPresenter {
 	constructor(
@@ -23,7 +24,17 @@ export class OrderPresenter {
 
 		this.eventEmitter.on('order.setUser', (user: UserData) => {
 			this.orderModel.user = user;
-      this.eventEmitter.emit('order.send');
+			this.eventEmitter.emit('order.send');
+		});
+
+		this.eventEmitter.on('order.success', (res: Promise<success>) => {
+			res.then((data) => {
+				const count = this.orderModel.clearOrder();
+				this.eventEmitter.emit('app.updateProductsCount', {
+					count: String(count),
+				});
+				this.eventEmitter.emit('modal.createSuccess', data);
+			});
 		});
 	}
 }

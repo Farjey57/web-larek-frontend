@@ -1,34 +1,30 @@
-import { OrderModel, PaymentType, UserData } from '../../model/Orders/Model';
+import { PaymentType, UserData } from '../../../types';
+import { IFormPresenter } from '../../../types/presenter/Form/FormPresenter';
 import { EventEmitter } from '../../base/events';
-import { IProduct } from '../../../types';
 import { FormDeliveryView } from '../../view/Form/FormDelivery/FormDeliveryView';
-import { FormContactsView } from '../../view/Form/FormContacts/FormContactsView';
 
-export class FormPresenter implements UserData {
+export class FormPresenter implements IFormPresenter {
 	address: string;
 	email: string;
 	payment: PaymentType;
 	phone: string;
 
-	constructor(
-		private orderModel: OrderModel,
-		private readonly eventEmitter: EventEmitter
-	) {
+	constructor(private readonly eventEmitter: EventEmitter) {
 		this.addListeners();
 	}
 
 	addListeners() {
-    this.eventEmitter.on('form.change', (form: FormDeliveryView) => {
-      form.validate()
-    })
+		this.eventEmitter.on('form.change', (form: FormDeliveryView) => {
+			form.validate();
+		});
 
 		this.eventEmitter.on('form.updateData', (data: Partial<UserData>) => {
-      Object.assign(this, data);
-		})
+			Object.assign(this, data);
+		});
 
 		this.eventEmitter.on('form.submit', () => {
-		  this.eventEmitter.emit('order.setUser', this.data)
-		})
+			this.eventEmitter.emit('order.setUser', this.data);
+		});
 	}
 
 	get data() {
@@ -40,9 +36,4 @@ export class FormPresenter implements UserData {
 		};
 		return res;
 	}
-}
-
-export enum Step {
-	delivery = 'delivery',
-	contacts = 'contacts',
 }
