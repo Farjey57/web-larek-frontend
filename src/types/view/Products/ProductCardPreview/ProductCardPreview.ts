@@ -1,11 +1,13 @@
 import { IProduct } from '../../..';
+import { ProductCardPreviewView } from '../../../../components/view/Products/ProductCardPreview/ProductCardPreviewView';
 
 export interface IProductCardPreviewView {
-	template: HTMLElement;
+  state: boolean;
+  render(): HTMLElement;
 }
 
 export type ProductCardPreviewSettings = {
 	product: IProduct;
-	buttonText: string;
-	onClick(product: IProduct): void;
+	state: boolean;
+	onClick(preview: ProductCardPreviewView): void;
 };

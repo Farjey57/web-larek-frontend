@@ -1,9 +1,4 @@
-import {
-	cloneTemplate,
-	ensureElement,
-	getImageUrl,
-} from '../../../../utils/utils';
-import { CDN_URL } from '../../../../utils/constants';
+import { cloneTemplate, ensureElement } from '../../../../utils/utils';
 import { getCategoryClass } from '../utils';
 import {
 	IProductCardPreviewView,
@@ -11,35 +6,60 @@ import {
 } from '../../../../types/view/Products/ProductCardPreview/ProductCardPreview';
 
 export class ProductCardPreviewView implements IProductCardPreviewView {
-	constructor(private readonly settings: ProductCardPreviewSettings) {}
+	private _state: boolean;
+	private element: HTMLElement;
+	private category: HTMLElement;
+	private title: HTMLElement;
+	private image: HTMLImageElement;
+	private price: HTMLElement;
+	private buttonCart: HTMLButtonElement;
 
-	get template() {
-		const { product, buttonText, onClick } = this.settings;
-		const card = cloneTemplate('#card-preview');
-		const cardCategory = ensureElement('.card__category', card);
-		const classname = getCategoryClass(product.category);
-		const buttonCart = ensureElement('.card__button', card);
-
-		cardCategory.innerText = product.category;
-		cardCategory.classList.add(classname);
-
-		if (product.price) {
-			buttonCart.innerText = buttonText;
-			buttonCart.onclick = () => onClick(product);
-		} else {
-			buttonCart.setAttribute('disabled', 'disabled');
-			buttonCart.innerText = 'Эх, пока не продается =(';
-		}
-
-		ensureElement('.card__title', card).innerText = product.title;
-		ensureElement<HTMLImageElement>('.card__image', card).src = getImageUrl(
-			CDN_URL,
-			product.image
+	constructor(private readonly settings: ProductCardPreviewSettings) {
+		this.element = cloneTemplate('#card-preview');
+		this.category = ensureElement('.card__category', this.element);
+		this.title = ensureElement('.card__title', this.element);
+		this.image = ensureElement<HTMLImageElement>('.card__image', this.element);
+		this.price = ensureElement('.card__price', this.element);
+		this.buttonCart = ensureElement<HTMLButtonElement>(
+			'.card__button',
+			this.element
 		);
-		ensureElement('.card__price', card).innerText = product.price
-			? `${String(product.price)} синапсов`
+	}
+
+	render() {
+		this.state = this.settings.state;
+		this.title.textContent = this.settings.product.title;
+		this.category.textContent = this.settings.product.category;
+		this.price.textContent = this.settings.product.price
+			? `${String(this.settings.product.price)} синапсов`
 			: `Бесценно`;
 
-		return card;
+		this.image.src = this.settings.product.image;
+
+		this.category.classList.add(
+			getCategoryClass(this.settings.product.category)
+		);
+		this.setButtonDisabled(this.settings.product.price);
+
+		return this.element;
+	}
+
+	set state(newState: boolean) {
+		this._state = newState;
+		this.updateButtonText();
+	}
+
+	private updateButtonText() {
+		this.buttonCart.textContent = this._state ? 'Удалить из корзины' : 'Купить';
+	}
+
+	private setButtonDisabled(price: number) {
+		if (price) {
+			this.buttonCart.onclick = () => this.settings.onClick(this);
+		} else {
+			this.buttonCart.onclick = null;
+			this.buttonCart.setAttribute('disabled', 'disabled');
+			this.buttonCart.innerText = 'Эх, пока не продается =(';
+		}
 	}
 }

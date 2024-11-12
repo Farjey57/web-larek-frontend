@@ -1,5 +1,5 @@
 export interface IOrdersService {
-  postOrder(order: OrderFetchType): Promise<success>
+  postOrder(order: OrderFetchType): Promise<OrderResultType>
 }
 
 export type OrderFetchType = {
@@ -11,7 +11,7 @@ export type OrderFetchType = {
   items: string[];
 }
 
-export type success = {
+export type OrderResultType = {
 	id: string;
 	total: number;
 };

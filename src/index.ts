@@ -1,29 +1,29 @@
 import './scss/styles.scss';
 import { Api } from './components/base/api';
-import { API_URL, settings } from './utils/constants';
-import { ProductsService } from './components/model/Products/Services/ProductsService';
+import { API_URL, CDN_URL, settings } from './utils/constants';
+import { ProductsService } from './components/api/ProductsServices/ProductsService';
 import { EventEmitter } from './components/base/events';
 import { ProductModel } from './components/model/Products/Model';
 import { OrderModel } from './components/model/Orders/Model';
-import { OrdersService } from './components/model/Orders/Service/OrdersService';
+import { OrdersService } from './components/api/OrdersService/OrdersService';
 import { IProduct, UserData } from './types';
-import { ProductsGalleryView } from './components/view/Products/ProductsGallery/ProductsGallaryView';
-import { bem, ensureElement } from './utils/utils';
+import { ensureElement } from './utils/utils';
 import { FormDeliveryView } from './components/view/Form/FormDelivery/FormDeliveryView';
 import { ModalView } from './components/view/Modal/ModalView';
 import { ProductCardPreviewView } from './components/view/Products/ProductCardPreview/ProductCardPreviewView';
-import { OrderCartView } from './components/view/Order/OrderCart/OrderCartView';
 import { FormContactsView } from './components/view/Form/FormContacts/FormContactsView';
-import { success } from './types/model/Orders/Service/Service';
+import { OrderResultType } from './types/api/OrderService/OrderService';
 import { Success } from './components/view/Success/SuccessView';
-
-/* Много чего ещё можно сделать (базовые классы, абстракции), но времени нет( и переходов больше тоже */
+import { CartView } from './components/view/Cart/CartView';
+import { Page } from './components/view/Page/PageView';
+import { ProductCardView } from './components/view/Products/ProductCard/ProductCardView';
+import { ICartView } from './types/view/Cart/Cart';
 
 /* ИНИЦИАЛИЗАЦИЯ */
 
 // Адаптеры к Api
 const api = new Api(API_URL, settings);
-const productService = new ProductsService(api);
+const productService = new ProductsService(api, CDN_URL);
 const orderService = new OrdersService(api);
 
 // Модели
@@ -33,96 +33,75 @@ const orderModel = new OrderModel();
 // Эмитер
 const eventEmitter = new EventEmitter();
 
-// Глобальные значения на главной странице
-const cartElement = ensureElement('.header__basket');
-const cartCount = ensureElement('.header__basket-counter');
-const pageWrapper = ensureElement('.page__wrapper');
+/* VIEW */
 
-cartElement.onclick = () => {
-	eventEmitter.emit('modal.createCart');
-	eventEmitter.emit('modal.showModal');
-};
+//Контейнер страницы
+const page = new Page(document.body, {
+	onClick: () => {
+		eventEmitter.emit('modal.openCart');
+	},
+});
 
 //Модалка
 const modal = new ModalView(ensureElement('#modal-container'), () =>
 	eventEmitter.emit('modal.hideModal')
 );
 
+//Корзина
+const cart: ICartView = new CartView({
+	products: orderModel.productsList,
+	totalPrice: orderModel.total,
+	onSubmit: () => {
+		eventEmitter.emit('modal.createFormDelivery');
+	},
+	onDelete: (id: string) => {
+		eventEmitter.emit('order.remove', { id });
+	},
+}).render();
+
 /* СОБЫТИЯ */
 
 // События главной страницы
 eventEmitter.on(
-	'app.updateProductsCount',
-	(data: { count: string }) => (cartCount.innerText = data.count)
+	'page.updateProductsCount',
+	() => (page.counter = orderModel.count)
 );
 
-// Получение данных с сервера
-
-eventEmitter.on('product.download', async () => {
-	await productService
-		.getAllProducts()
-		.then((data) => {
-			productsModel.setProducts(data.items);
-			eventEmitter.emit('product.ready', data.items);
-		})
-		.catch((err) => {
-			console.log(err);
-			setTimeout(() => {
-				eventEmitter.emit('product.download');
-			}, 1000);
-		});
-});
-
 //Загрузка продкутов завершена. Инициализируется отображение товаров
-eventEmitter.on('product.ready', (data: IProduct[]) => {
-	const galleryView = new ProductsGalleryView({
-		products: data,
-		onProductClick: (product: IProduct) => {
-			eventEmitter.emit('modal.createProduct', product);
-			eventEmitter.emit('modal.showModal');
-		},
+eventEmitter.on('product.ready', () => {
+	page.gallery = productsModel.getProducts().map((product) => {
+		const Card = new ProductCardView({
+			product: product,
+			onClick: (product: IProduct) => {
+				eventEmitter.emit('modal.createPreview', product);
+			},
+		});
+		return Card.render();
 	});
-	galleryView.render(ensureElement('.gallery'));
 });
 
 /* МОДАЛКА */
 
 //Создание карт превью
-eventEmitter.on('modal.createProduct', (product: IProduct) => {
-	console.log('modal.createProduct');
-	const content = new ProductCardPreviewView({
+eventEmitter.on('modal.createPreview', (product: IProduct) => {
+	const preview = new ProductCardPreviewView({
 		product,
-		buttonText: orderModel.hasProduct(product.id)
-			? 'Удалить из корзины'
-			: 'Купить',
-		onClick: () => {
+		state: orderModel.hasProduct(product.id),
+		onClick: (preview: ProductCardPreviewView) => {
 			orderModel.hasProduct(product.id)
 				? eventEmitter.emit('order.remove', { id: product.id })
 				: eventEmitter.emit('order.add', product);
-			eventEmitter.emit('modal.createProduct', product);
+			preview.state = orderModel.hasProduct(product.id);
 		},
 	});
-	modal.setContent(content.template);
+	modal.setContent(preview.render());
+	eventEmitter.emit('modal.showModal');
 });
 
 //Рендер корзины
-eventEmitter.on('modal.createCart', () => {
-	const cartView = new OrderCartView({
-		products: orderModel.productsList,
-		totalPrice: String(
-			orderModel.productsList.reduce((total, product) => {
-				return total + product.price;
-			}, 0)
-		),
-		onSubmit: () => {
-			eventEmitter.emit('modal.createFormDelivery');
-		},
-		onDelete: (id: string) => {
-			eventEmitter.emit('order.remove', { id });
-			eventEmitter.emit('modal.createCart', { id });
-		},
-	});
-	modal.setContent(cartView.template);
+eventEmitter.on('modal.openCart', () => {
+	modal.setContent(cart);
+	eventEmitter.emit('modal.showModal');
 });
 
 //Рендер формы Delivery
@@ -156,7 +135,7 @@ eventEmitter.on('modal.createFormContacts', () => {
 });
 
 //Рендер окна Success
-eventEmitter.on('modal.createSuccess', (res: success) => {
+eventEmitter.on('modal.createSuccess', (res: OrderResultType) => {
 	console.log('modal.createSuccess');
 	const successView = new Success({
 		res,
@@ -170,13 +149,13 @@ eventEmitter.on('modal.createSuccess', (res: success) => {
 // показать модалку
 eventEmitter.on('modal.showModal', () => {
 	modal.show();
-	pageWrapper.classList.toggle(bem('page', 'wrapper', 'locked').name);
+	page.locked = true;
 });
 
 // закрыть модалку
 eventEmitter.on('modal.hideModal', () => {
 	modal.hide();
-	pageWrapper.classList.toggle(bem('page', 'wrapper', 'locked').name);
+	page.locked = false;
 });
 
 /* ФОРМА */
@@ -197,16 +176,17 @@ eventEmitter.on('form.submit', () => {
 
 eventEmitter.on('order.add', (product: IProduct) => {
 	orderModel.addProduct(product);
-	eventEmitter.emit('app.updateProductsCount', {
-		count: String(orderModel.count),
-	});
+	eventEmitter.emit('order.update');
 });
 
 eventEmitter.on('order.remove', (data: { id: string }) => {
 	orderModel.removeProduct(data.id);
-	eventEmitter.emit('app.updateProductsCount', {
-		count: String(orderModel.count),
-	});
+	eventEmitter.emit('order.update');
+});
+
+eventEmitter.on('order.update', () => {
+	cart.totalPrice = `${orderModel.total}`;
+	eventEmitter.emit('page.updateProductsCount');
 });
 
 eventEmitter.on('order.setUser', (user: UserData) => {
@@ -228,13 +208,20 @@ eventEmitter.on('order.send', () => {
 		});
 });
 
-eventEmitter.on('order.success', (res: success) => {
+eventEmitter.on('order.success', (res: OrderResultType) => {
 	orderModel.clearOrder();
-	eventEmitter.emit('app.updateProductsCount', {
+	eventEmitter.emit('page.updateProductsCount', {
 		count: String(orderModel.count),
 	});
 	eventEmitter.emit('modal.createSuccess', res);
 });
 
-// Инициализация
-eventEmitter.emit('product.download');
+productService
+	.getAllProducts()
+	.then((data) => {
+		productsModel.setProducts(data);
+		eventEmitter.emit('product.ready');
+	})
+	.catch((err) => {
+		console.log(err);
+	});
