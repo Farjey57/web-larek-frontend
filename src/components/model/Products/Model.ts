@@ -15,5 +15,4 @@ export class ProductModel implements IProductsModel {
 	setProducts(products: IProduct[]) {
 		this._products = products;
 	}
-
 }

@@ -7,14 +7,10 @@ export class OrderModel implements IOrdersModel {
 	//Для отображения списка товаров в корзине
 	//нужный спсиок ID мы получаем через геттер dataOrder()
 	private userData: UserData;
+	private formErrors: Partial<OrderFetchType> = {};
 
 	constructor() {
-		this.user = {
-			phone: '',
-			email: '',
-			address: '',
-			payment: null,
-		};
+		this.clearOrder();
 	}
 
 	get productsList(): IProduct[] {
@@ -64,5 +60,32 @@ export class OrderModel implements IOrdersModel {
 			address: '',
 			payment: null,
 		};
+		this.formErrors = {};
+	}
+
+	validateOrder(cb?: (errors: Partial<OrderFetchType>) => void) {
+		const errors: typeof this.formErrors = {};
+		if (!this.userData.payment) {
+			errors.payment = 'Необходимо выбрать способ доставки';
+		}
+		if (!this.userData.address) {
+			errors.address = 'Необходимо указать адрес доставки';
+		}
+		this.formErrors = errors;
+		cb && cb(this.formErrors);
+		return Object.keys(errors).length === 0;
+	}
+
+	validateContacts(cb?: (errors: Partial<OrderFetchType>) => void) {
+		const errors: typeof this.formErrors = {};
+		if (!this.userData.phone) {
+			errors.phone = 'Необходимо указать телефон';
+		}
+		if (!this.userData.email) {
+			errors.email = 'Необходимо указать email';
+		}
+		this.formErrors = errors;
+		cb && cb(this.formErrors);
+		return Object.keys(errors).length === 0;
 	}
 }

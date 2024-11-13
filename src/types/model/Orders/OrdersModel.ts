@@ -12,4 +12,6 @@ export interface IOrdersModel {
 	removeProduct(id: string): void;
 	hasProduct(id: string): boolean;
 	clearOrder(): void;
+	validateOrder(cb?: (errors: Partial<OrderFetchType>) => void): boolean;
+	validateContacts(cb?: (errors: Partial<OrderFetchType>) => void): boolean;
 }

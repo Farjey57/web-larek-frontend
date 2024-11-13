@@ -1,65 +1,19 @@
-import {
-	FormContactsViewSettings,
-	IFormContactsView,
-} from '../../../../types/view/From/FormContacts/FormContacts';
-import { cloneTemplate, ensureElement } from '../../../../utils/utils';
+import { UserData } from '../../../../types';
+import { IFormSettings } from '../../../../types/view/Form/Form';
+import { Form } from '../Form';
 
-export class FormContactsView implements IFormContactsView {
-	email: string;
-	phone: string;
-	error: HTMLElement;
-	submitButton: HTMLElement;
-
-	constructor(private settings: FormContactsViewSettings) {}
-
-	get template() {
-		const orderTemplate = cloneTemplate('#contacts');
-		this.error = ensureElement('.form__errors', orderTemplate);
-		this.submitButton = ensureElement('.button', orderTemplate);
-
-		ensureElement<HTMLInputElement>(
-			'.form__input[name=email]',
-			orderTemplate
-		).addEventListener('input', (e) => {
-			this.email = (e.target as HTMLInputElement).value;
-			this.settings.onChangeForm(this);
-		});
-
-		ensureElement<HTMLInputElement>(
-			'.form__input[name=phone]',
-			orderTemplate
-		).addEventListener('input', (e) => {
-			this.phone = (e.target as HTMLInputElement).value;
-			this.settings.onChangeForm(this);
-		});
-
-		orderTemplate.onsubmit = (e) => e.preventDefault();
-		this.submitButton.onclick = () => {
-			if (this.validate())
-				this.settings.onSubmit({
-					email: this.email,
-					phone: this.phone,
-				});
-		};
-
-		this.validate();
-
-		return orderTemplate;
+export class FormContactsView extends Form<UserData> {
+	constructor(template: string, settings: IFormSettings<UserData>) {
+		super(template, settings);
 	}
 
-	validate(): boolean {
-		if (!this.isValid()) {
-			this.error.innerText = 'Не все поля заполнены';
-			this.submitButton.setAttribute('disabled', 'disabled');
-			return false;
-		} else {
-			this.error.innerText = '';
-			this.submitButton.removeAttribute('disabled');
-			return true;
-		}
+	set phone(value: string) {
+		(this._element.elements.namedItem('phone') as HTMLInputElement).value =
+			value;
 	}
 
-	isValid(): boolean {
-		return !!this.email && !!this.phone;
+	set email(value: string) {
+		(this._element.elements.namedItem('email') as HTMLInputElement).value =
+			value;
 	}
 }

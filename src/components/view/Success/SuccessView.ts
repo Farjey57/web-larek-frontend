@@ -2,18 +2,25 @@ import { ISuccess, successSettings } from '../../../types/view/Success/Success';
 import { cloneTemplate, ensureElement } from '../../../utils/utils';
 
 export class Success implements ISuccess {
-	constructor(private settings: successSettings) {}
+	protected _element: HTMLElement;
+	protected _description: HTMLElement;
+	protected _close: HTMLElement;
 
-	get template() {
-		const orderTemplate = cloneTemplate('#success');
-
-		ensureElement(
+	constructor(protected template: string, protected settings: successSettings) {
+		this._element = cloneTemplate(template);
+		this._description = ensureElement(
 			'.order-success__description',
-			orderTemplate
-		).innerText = `Списано ${this.settings.res.total} синапсов`;
-		ensureElement('.order-success__close', orderTemplate).onclick =
-			this.settings.onClick;
+			this._element
+		);
+		this._close = ensureElement('.order-success__close', this._element);
+	}
 
-		return orderTemplate;
+	render() {
+		this._close.onclick = this.settings.onClick;
+		return this._element;
+	}
+
+	set description(text: string) {
+		this._description.textContent = text;
 	}
 }

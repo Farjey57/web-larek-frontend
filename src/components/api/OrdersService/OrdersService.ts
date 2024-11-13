@@ -6,7 +6,7 @@ import {
 } from '../../../types/api/OrderService/OrderService';
 
 export class OrdersService implements IOrdersService {
-  constructor(private api: Api) {}
+	constructor(private api: Api) {}
 
 	postOrder(order: OrderFetchType): Promise<OrderResultType> {
 		return this.api.post('/order', order).then((data: OrderResultType) => data);

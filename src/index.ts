@@ -1,23 +1,32 @@
 import './scss/styles.scss';
 import { Api } from './components/base/api';
-import { API_URL, CDN_URL, settings } from './utils/constants';
+import {
+	API_URL,
+	CDN_URL,
+	settings,
+	TemplateSettings,
+} from './utils/constants';
 import { ProductsService } from './components/api/ProductsServices/ProductsService';
 import { EventEmitter } from './components/base/events';
 import { ProductModel } from './components/model/Products/Model';
 import { OrderModel } from './components/model/Orders/Model';
 import { OrdersService } from './components/api/OrdersService/OrdersService';
-import { IProduct, UserData } from './types';
+import { IProduct, PaymentType, UserData } from './types';
 import { ensureElement } from './utils/utils';
-import { FormDeliveryView } from './components/view/Form/FormDelivery/FormDeliveryView';
+import { FormOrderView } from './components/view/Form/FormOrder/FormOrderView';
 import { ModalView } from './components/view/Modal/ModalView';
-import { ProductCardPreviewView } from './components/view/Products/ProductCardPreview/ProductCardPreviewView';
-import { FormContactsView } from './components/view/Form/FormContacts/FormContactsView';
-import { OrderResultType } from './types/api/OrderService/OrderService';
+import {
+	OrderFetchType,
+	OrderResultType,
+} from './types/api/OrderService/OrderService';
 import { Success } from './components/view/Success/SuccessView';
 import { CartView } from './components/view/Cart/CartView';
 import { Page } from './components/view/Page/PageView';
-import { ProductCardView } from './components/view/Products/ProductCard/ProductCardView';
-import { ICartView } from './types/view/Cart/Cart';
+import { IFormState } from './types/view/Form/Form';
+import { FormContactsView } from './components/view/Form/FormContacts/FormContactsView';
+import { CardPreviewView } from './components/view/Card/CardPreview/CardPreviewView';
+import { CardCartView } from './components/view/Card/CardCart/CardCartView';
+import { CardGalleryView } from './components/view/Card/CardGallary/CardGallaryView';
 
 /* ИНИЦИАЛИЗАЦИЯ */
 
@@ -48,16 +57,46 @@ const modal = new ModalView(ensureElement('#modal-container'), () =>
 );
 
 //Корзина
-const cart: ICartView = new CartView({
+const cart = new CartView(TemplateSettings.cartView, {
 	products: orderModel.productsList,
 	totalPrice: orderModel.total,
 	onSubmit: () => {
-		eventEmitter.emit('modal.createFormDelivery');
+		eventEmitter.emit('modal.createFormOrder');
 	},
-	onDelete: (id: string) => {
-		eventEmitter.emit('order.remove', { id });
+});
+
+//Форма доставки
+const formOrder = new FormOrderView(TemplateSettings.formOrder, {
+	onChangeForm: (field: string, value: PaymentType) => {
+		eventEmitter.emit(`order.${String(field)}.change`, {
+			field,
+			value,
+		});
 	},
-}).render();
+	onSubmit: (formName: string) => {
+		eventEmitter.emit(`${formName}Form.submit`);
+	},
+});
+
+//Форма контакты
+const formContacts = new FormContactsView(TemplateSettings.formContacts, {
+	onChangeForm: (field: string, value: PaymentType) => {
+		eventEmitter.emit(`contacts.${String(field)}.change`, {
+			field,
+			value,
+		});
+	},
+	onSubmit: (formName: string) => {
+		eventEmitter.emit(`${formName}Form.submit`);
+	},
+});
+
+//Окно завершения заказа
+const successView = new Success(TemplateSettings.success, {
+	onClick: () => {
+		eventEmitter.emit('modal.hideModal');
+	},
+});
 
 /* СОБЫТИЯ */
 
@@ -70,7 +109,7 @@ eventEmitter.on(
 //Загрузка продкутов завершена. Инициализируется отображение товаров
 eventEmitter.on('product.ready', () => {
 	page.gallery = productsModel.getProducts().map((product) => {
-		const Card = new ProductCardView({
+		const Card = new CardGalleryView(TemplateSettings.cardGallery, {
 			product: product,
 			onClick: (product: IProduct) => {
 				eventEmitter.emit('modal.createPreview', product);
@@ -84,10 +123,10 @@ eventEmitter.on('product.ready', () => {
 
 //Создание карт превью
 eventEmitter.on('modal.createPreview', (product: IProduct) => {
-	const preview = new ProductCardPreviewView({
+	const preview = new CardPreviewView(TemplateSettings.cardPreview, {
 		product,
 		state: orderModel.hasProduct(product.id),
-		onClick: (preview: ProductCardPreviewView) => {
+		onClick: (preview: CardPreviewView) => {
 			orderModel.hasProduct(product.id)
 				? eventEmitter.emit('order.remove', { id: product.id })
 				: eventEmitter.emit('order.add', product);
@@ -100,50 +139,41 @@ eventEmitter.on('modal.createPreview', (product: IProduct) => {
 
 //Рендер корзины
 eventEmitter.on('modal.openCart', () => {
-	modal.setContent(cart);
+	cart.listContainer = orderModel.productsList.map((product, i) => {
+		return new CardCartView(TemplateSettings.cardCart, {
+			product: product,
+			index: ++i,
+			onDelete: (id: string) => {
+				eventEmitter.emit('order.remove', { id });
+			},
+		}).render();
+	});
+	modal.setContent(cart.render());
 	eventEmitter.emit('modal.showModal');
 });
 
-//Рендер формы Delivery
-eventEmitter.on('modal.createFormDelivery', () => {
-	const formView = new FormDeliveryView({
-		onChangeForm: (form) => {
-			eventEmitter.emit('form.change', form);
-		},
-		onSubmit: (data) => {
-			console.log(data);
-			eventEmitter.emit('form.updateData', data);
-			eventEmitter.emit('modal.createFormContacts');
-		},
-	});
-	modal.setContent(formView.template);
+//Рендер формы Order
+eventEmitter.on('modal.createFormOrder', () => {
+	modal.setContent(
+		formOrder.render({
+			address: '',
+			payment: null,
+			valid: false,
+			errors: '',
+		} as Partial<UserData> & IFormState)
+	);
 });
 
 //Рендер формы Contacts
 eventEmitter.on('modal.createFormContacts', () => {
-	const formView = new FormContactsView({
-		onChangeForm: (form) => {
-			eventEmitter.emit('form.change', form);
-		},
-		onSubmit: (data) => {
-			console.log('попытка отправить');
-			eventEmitter.emit('form.updateData', data);
-			eventEmitter.emit('form.submit');
-		},
-	});
-	modal.setContent(formView.template);
-});
-
-//Рендер окна Success
-eventEmitter.on('modal.createSuccess', (res: OrderResultType) => {
-	console.log('modal.createSuccess');
-	const successView = new Success({
-		res,
-		onClick: () => {
-			eventEmitter.emit('modal.hideModal');
-		},
-	});
-	modal.setContent(successView.template);
+	modal.setContent(
+		formContacts.render({
+			phone: '',
+			email: '',
+			valid: false,
+			errors: '',
+		} as Partial<UserData> & IFormState)
+	);
 });
 
 // показать модалку
@@ -156,20 +186,60 @@ eventEmitter.on('modal.showModal', () => {
 eventEmitter.on('modal.hideModal', () => {
 	modal.hide();
 	page.locked = false;
+  formContacts.valid = false;
+  formOrder.valid = false;
 });
 
 /* ФОРМА */
 
-eventEmitter.on('form.change', (form: FormDeliveryView) => {
-	form.validate();
+// Изменилось одно из полей formOrder
+eventEmitter.on(
+	/^order\..*\.change/,
+	(data: { field: string; value: PaymentType }) => {
+		orderModel.user = { [data.field]: data.value };
+		orderModel.validateOrder((errors) =>
+			eventEmitter.emit('formOrderErrors.change', errors)
+		);
+	}
+);
+
+// Изменилось одно из полей formContacts
+eventEmitter.on(
+	/^contacts\..*.change/,
+	(data: { field: string; value: PaymentType }) => {
+		orderModel.user = { [data.field]: data.value };
+		orderModel.validateContacts((errors) =>
+			eventEmitter.emit('formContactsErrors.change', errors)
+		);
+	}
+);
+
+// Изменилось состояние валидации формы
+eventEmitter.on('formOrderErrors.change', (errors: Partial<OrderFetchType>) => {
+	const { payment, address } = errors;
+	formOrder.valid = !payment && !address;
+	formOrder.errors = Object.values({ payment, address })
+		.filter((i) => !!i)
+		.join('; ');
 });
 
-eventEmitter.on('form.updateData', (data: Partial<UserData>) => {
-	orderModel.user = data;
+eventEmitter.on(
+	'formContactsErrors.change',
+	(errors: Partial<OrderFetchType>) => {
+		const { email, phone } = errors;
+		formContacts.valid = !email && !phone;
+		formContacts.errors = Object.values({ phone, email })
+			.filter((i) => !!i)
+			.join('; ');
+	}
+);
+
+eventEmitter.on('orderForm.submit', () => {
+	eventEmitter.emit('modal.createFormContacts');
 });
 
-eventEmitter.on('form.submit', () => {
-	eventEmitter.emit('order.setUser', orderModel.user);
+eventEmitter.on('contactsForm.submit', () => {
+	eventEmitter.emit('order.send');
 });
 
 /* ЗАКАЗ */
@@ -185,13 +255,17 @@ eventEmitter.on('order.remove', (data: { id: string }) => {
 });
 
 eventEmitter.on('order.update', () => {
-	cart.totalPrice = `${orderModel.total}`;
+	cart.listContainer = orderModel.productsList.map((product, i) => {
+		return new CardCartView(TemplateSettings.cardCart, {
+			product: product,
+			index: ++i,
+			onDelete: (id: string) => {
+				eventEmitter.emit('order.remove', { id });
+			},
+		}).render();
+	});
+	cart.totalPrice = orderModel.total;
 	eventEmitter.emit('page.updateProductsCount');
-});
-
-eventEmitter.on('order.setUser', (user: UserData) => {
-	orderModel.user = user;
-	eventEmitter.emit('order.send');
 });
 
 eventEmitter.on('order.send', () => {
@@ -202,18 +276,14 @@ eventEmitter.on('order.send', () => {
 		})
 		.catch((err) => {
 			console.log(err);
-			setTimeout(() => {
-				eventEmitter.emit('order.send');
-			}, 1000);
 		});
 });
 
 eventEmitter.on('order.success', (res: OrderResultType) => {
 	orderModel.clearOrder();
-	eventEmitter.emit('page.updateProductsCount', {
-		count: String(orderModel.count),
-	});
-	eventEmitter.emit('modal.createSuccess', res);
+	eventEmitter.emit('order.update');
+	successView.description = `Списано ${res.total} синапсов`;
+	modal.setContent(successView.render());
 });
 
 productService

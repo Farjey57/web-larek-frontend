@@ -7,10 +7,10 @@ export const settings = {
 
 export const TemplateSettings = {
   success: '#success',
-  productCard: '#card-catalog',
-  productCardPreview: '#card-preview',
-  productCardCart: '#card-basket',
+  cardGallery: '#card-catalog',
+  cardPreview: '#card-preview',
+  cardCart: '#card-basket',
   cartView: '#basket',
-  formDelivery: '#order',
+  formOrder: '#order',
   formContacts: '#contacts',
 }
