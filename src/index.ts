@@ -44,6 +44,10 @@ const eventEmitter = new EventEmitter();
 
 /* VIEW */
 
+// return this.productsList.reduce((total, product) => {
+//   return total + product.price;
+// }, 0);
+
 //Контейнер страницы
 const page = new Page(document.body, {
 	onClick: () => {
@@ -58,7 +62,11 @@ const modal = new ModalView(ensureElement('#modal-container'), () =>
 
 //Корзина
 const cart = new CartView(TemplateSettings.cartView, {
-	products: orderModel.productsList,
+	products: orderModel.productsList.reduce((acc, id) => {
+    const findProduct = productsModel.getProductById(id);
+    if (findProduct) acc.push(findProduct);
+    return acc;
+  }, []),
 	totalPrice: orderModel.total,
 	onSubmit: () => {
 		eventEmitter.emit('modal.createFormOrder');
@@ -139,15 +147,6 @@ eventEmitter.on('modal.createPreview', (product: IProduct) => {
 
 //Рендер корзины
 eventEmitter.on('modal.openCart', () => {
-	cart.listContainer = orderModel.productsList.map((product, i) => {
-		return new CardCartView(TemplateSettings.cardCart, {
-			product: product,
-			index: ++i,
-			onDelete: (id: string) => {
-				eventEmitter.emit('order.remove', { id });
-			},
-		}).render();
-	});
 	modal.setContent(cart.render());
 	eventEmitter.emit('modal.showModal');
 });
@@ -245,7 +244,7 @@ eventEmitter.on('contactsForm.submit', () => {
 /* ЗАКАЗ */
 
 eventEmitter.on('order.add', (product: IProduct) => {
-	orderModel.addProduct(product);
+	orderModel.addProduct(product.id);
 	eventEmitter.emit('order.update');
 });
 
@@ -255,7 +254,16 @@ eventEmitter.on('order.remove', (data: { id: string }) => {
 });
 
 eventEmitter.on('order.update', () => {
-	cart.listContainer = orderModel.productsList.map((product, i) => {
+  const dataOrder = orderModel.productsList.reduce((acc, id) => {
+    const findProduct = productsModel.getProductById(id);
+    if (findProduct) {
+      acc.price += findProduct.price
+      acc.list.push(findProduct)
+    }
+    return acc
+  }, {price: 0, list: []} as {price: number, list: IProduct[]})
+  orderModel.total = dataOrder.price
+	cart.listContainer = dataOrder.list.map((product, i) => {
 		return new CardCartView(TemplateSettings.cardCart, {
 			product: product,
 			index: ++i,

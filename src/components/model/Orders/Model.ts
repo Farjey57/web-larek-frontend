@@ -1,59 +1,61 @@
-import { IProduct, UserData } from '../../../types';
+import { UserData } from '../../../types';
 import { IOrdersModel } from '../../../types/model/Orders/OrdersModel';
 import { OrderFetchType } from '../../../types/api/OrderService/OrderService';
 
+
 export class OrderModel implements IOrdersModel {
-	private readonly products: Map<string, IProduct> = new Map();
-	//Для отображения списка товаров в корзине
-	//нужный спсиок ID мы получаем через геттер dataOrder()
+	private products: string[] = [];
 	private userData: UserData;
 	private formErrors: Partial<OrderFetchType> = {};
+  private _total: number;
 
 	constructor() {
 		this.clearOrder();
 	}
 
-	get productsList(): IProduct[] {
-		return Array.from(this.products.values());
+	get productsList(): string[] {
+		return this.products;
 	}
 
 	get dataOrder(): OrderFetchType {
-		const products = this.productsList.map((product) => product.id);
 		return Object.assign(
-			{ items: products },
+			{ items: this.products },
 			{ ...this.userData },
-			{ total: this.total }
+			{ total: this._total }
 		);
 	}
 
 	get count() {
-		return this.products.size;
+		return this.products.length;
 	}
 
+  set total(total: number) {
+    this._total = total;
+  }
+
 	get total(): number {
-		return this.productsList.reduce((total, product) => {
-			return total + product.price;
-		}, 0);
+		return this._total
 	}
 
 	set user(user: Partial<UserData>) {
 		this.userData = { ...this.userData, ...user };
 	}
 
-	addProduct(product: IProduct) {
-		this.products.set(product.id, product);
+	addProduct(id: string) {
+		this.products.push(id);
 	}
 
-	removeProduct(id: string) {
-		this.products.delete(id);
+	removeProduct(idRemove: string) {
+		this.products = this.products.filter((id) => id !== idRemove);
 	}
 
 	hasProduct(id: string): boolean {
-		return this.products.has(id);
+		return this.products.includes(id);
 	}
 
 	clearOrder() {
-		this.products.clear();
+		this.products.length = 0;
+    this.total = 0;
 		this.userData = {
 			phone: '',
 			email: '',

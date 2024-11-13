@@ -1,14 +1,14 @@
-import { IProduct, UserData } from '../..';
+import { UserData } from '../..';
 import { OrderFetchType } from '../../api/OrderService/OrderService';
 
 export interface IOrdersModel {
-	productsList: IProduct[];
+	productsList: string[];
 	dataOrder: OrderFetchType;
 	user: Partial<UserData>;
 	count: number;
 	total: number;
 
-	addProduct(product: IProduct): void;
+	addProduct(id: string): void;
 	removeProduct(id: string): void;
 	hasProduct(id: string): boolean;
 	clearOrder(): void;

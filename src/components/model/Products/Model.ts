@@ -8,7 +8,7 @@ export class ProductModel implements IProductsModel {
 		return this._products;
 	}
 
-	getProductById(id: string) {
+	getProductById(id: string): IProduct {
 		return this._products.find((product) => product.id === id);
 	}
 
